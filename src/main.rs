@@ -1,7 +1,11 @@
-mod loader;
-mod parser;
+mod bnb;
+mod constants;
+mod nbrb;
 
 fn main() {
-    let html = loader::get_html().unwrap();
-    parser::parse(html)
+    let bnb_html = bnb::get_html().unwrap();
+    let bnb_price = bnb::get_price(bnb_html).unwrap();
+    let nbrb = nbrb::get_price().unwrap();
+
+    println!("{} {}", bnb_price, nbrb)
 }
