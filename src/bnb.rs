@@ -4,17 +4,9 @@ use scraper::{ElementRef, Html, Selector};
 
 use crate::constants;
 
-pub fn get_html() -> Result<String, Box<dyn std::error::Error>> {
-    let client = reqwest::blocking::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()?;
+pub fn get_price() -> Result<f64, Box<dyn std::error::Error>> {
+    let html = get_html()?;
 
-    let res = client.get(constants::BNB_URL).send()?.text()?;
-
-    Ok(res)
-}
-
-pub fn get_price(html: String) -> Result<f64, Box<dyn std::error::Error>> {
     let document = Html::parse_document(&html);
 
     let currency_selector = Selector::parse("td.rates-table__currency")?;
@@ -51,4 +43,14 @@ pub fn get_price(html: String) -> Result<f64, Box<dyn std::error::Error>> {
     let price: f64 = prices[1].parse()?;
 
     Ok(price)
+}
+
+fn get_html() -> Result<String, Box<dyn std::error::Error>> {
+    let client = reqwest::blocking::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()?;
+
+    let res = client.get(constants::BNB_URL).send()?.text()?;
+
+    Ok(res)
 }
