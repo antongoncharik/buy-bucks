@@ -1,4 +1,5 @@
 use dotenv::dotenv;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use teloxide::{prelude::*, utils::command::BotCommands};
 use tokio::time::sleep;
@@ -23,20 +24,16 @@ pub async fn start() {
     log::info!("Starting command bot...");
 
     let bot = Bot::from_env();
-    // let chat_ids = Arc::new(Mutex::new(Vec::new()));
-    let chat_ids: Vec<i64> = vec![457923379];
+    let chat_ids: Arc<Mutex<Vec<i64>>> = Arc::new(Mutex::new(vec![]));
 
     let bot_clone = bot.clone();
-    // let chat_ids_clone = chat_ids.clone();
+    let chat_ids_clone = chat_ids.clone();
 
-    // Spawn a new thread to send a message every minute
-    // let bot_clone = bot.clone();
     tokio::spawn(async move {
         loop {
-            // let ids = chat_ids_clone.lock().unwrap();
-            // let ids = chat_ids;
+            let ids = chat_ids_clone.lock().unwrap().clone();
 
-            for &chat_id in &*chat_ids {
+            for &chat_id in ids.iter() {
                 let chat_id = ChatId(chat_id);
 
                 if let Err(e) = bot_clone
@@ -51,15 +48,23 @@ pub async fn start() {
         }
     });
 
-    Command::repl(bot, answer).await;
+    Command::repl(bot, move |bot, msg, cmd| {
+        let chat_ids_clone = chat_ids.clone();
+        async move { answer(bot, msg, cmd, chat_ids_clone).await }
+    })
+    .await;
 }
 
-async fn answer(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()> {
-    // let chat_ids = chat_ids.clone();
-    // let mut ids = chat_ids.lock().unwrap();
-    // ids.push(msg.chat.id);
-
-    println!("{}", msg.chat.id);
+async fn answer(
+    bot: Bot,
+    msg: Message,
+    cmd: Command,
+    chat_ids: Arc<Mutex<Vec<i64>>>,
+) -> ResponseResult<()> {
+    {
+        let mut ids = chat_ids.lock().unwrap();
+        ids.push(msg.chat.id.0);
+    }
 
     match cmd {
         Command::Help => {
