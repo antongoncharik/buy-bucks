@@ -32,9 +32,7 @@ pub fn get_price() -> Result<f64, Box<dyn std::error::Error>> {
                         .select(&price_selector)
                         .map(|e| e.inner_html())
                         .collect();
-
-                    prices.push(values[0].to_string());
-                    prices.push(values[1].to_string());
+                    prices.extend(values);
                 }
             }
         }
