@@ -4,6 +4,18 @@ use std::time::Duration;
 use teloxide::{prelude::*, utils::command::BotCommands};
 use tokio::time::sleep;
 
+#[derive(BotCommands, Clone)]
+#[command(
+    rename_rule = "lowercase",
+    description = "These commands are supported:"
+)]
+enum Command {
+    #[command(description = "display this text.")]
+    Help,
+    #[command(description = "handle a username.")]
+    Username(String),
+}
+
 #[tokio::main]
 pub async fn start() {
     dotenv().ok();
@@ -43,20 +55,6 @@ pub async fn start() {
     Command::repl(bot, answer).await;
 }
 
-#[derive(BotCommands, Clone)]
-#[command(
-    rename_rule = "lowercase",
-    description = "These commands are supported:"
-)]
-enum Command {
-    #[command(description = "display this text.")]
-    Help,
-    #[command(description = "handle a username.")]
-    Username(String),
-    #[command(description = "handle a username and an age.", parse_with = "split")]
-    UsernameAndAge { username: String, age: u8 },
-}
-
 async fn answer(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()> {
     // let chat_ids = chat_ids.clone();
     // let mut ids = chat_ids.lock().unwrap();
@@ -72,13 +70,6 @@ async fn answer(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()> {
         Command::Username(username) => {
             bot.send_message(msg.chat.id, format!("Your username is @{username}."))
                 .await?
-        }
-        Command::UsernameAndAge { username, age } => {
-            bot.send_message(
-                msg.chat.id,
-                format!("Your username is @{username} and age is {age}."),
-            )
-            .await?
         }
     };
 
