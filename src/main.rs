@@ -1,6 +1,6 @@
-// mod bnb;
-// mod constants;
-// mod nbrb;
+mod bnb;
+mod constants;
+mod nbrb;
 mod tg;
 
 fn main() {

@@ -4,8 +4,8 @@ use scraper::{ElementRef, Html, Selector};
 
 use crate::constants;
 
-pub fn get_price() -> Result<f64, Box<dyn std::error::Error>> {
-    let html = get_html()?;
+pub async fn get_price() -> Result<f64, Box<dyn std::error::Error>> {
+    let html = get_html().await?;
 
     let document = Html::parse_document(&html);
 
@@ -43,12 +43,12 @@ pub fn get_price() -> Result<f64, Box<dyn std::error::Error>> {
     Ok(price)
 }
 
-fn get_html() -> Result<String, Box<dyn std::error::Error>> {
-    let client = reqwest::blocking::Client::builder()
+async fn get_html() -> Result<String, Box<dyn std::error::Error>> {
+    let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
         .build()?;
 
-    let res = client.get(constants::BNB_URL).send()?.text()?;
+    let res = client.get(constants::BNB_URL).send().await?.text().await?;
 
     Ok(res)
 }

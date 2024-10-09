@@ -25,7 +25,7 @@ struct NBRNResponse {
     cur_official_rate: f64,
 }
 
-pub fn get_price() -> Result<f64, Box<dyn std::error::Error>> {
+pub async fn get_price() -> Result<f64, Box<dyn std::error::Error>> {
     let today = Local::now().date_naive();
     let first_day_of_current_month =
         NaiveDate::from_ymd_opt(today.year(), today.month(), 1).unwrap();
@@ -33,9 +33,9 @@ pub fn get_price() -> Result<f64, Box<dyn std::error::Error>> {
 
     let url = constants::NBRB_URL.to_string() + &last_day_of_previous_month.to_string();
 
-    let client = reqwest::blocking::Client::builder().build()?;
+    let client = reqwest::Client::builder().build()?;
 
-    let res = client.get(url).send()?.text()?;
+    let res = client.get(url).send().await?.text().await?;
 
     let nbrn_response: NBRNResponse = serde_json::from_str(&res)?;
 
