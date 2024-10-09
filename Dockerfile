@@ -1,6 +1,6 @@
 FROM rust:1.81 as builder
 
-WORKDIR /opt/app
+WORKDIR /usr/src/app
 
 COPY Cargo.toml Cargo.lock ./
 
@@ -8,10 +8,10 @@ COPY . .
 
 RUN cargo build --release
 
-FROM alpine:latest
+FROM ubuntu:22.04
 
-WORKDIR /opt/app
+WORKDIR /usr/local/bin
 
-COPY --from=builder /opt/app/target/release/buy-bucks /opt/app/buy-bucks
+COPY --from=builder /usr/src/app/target/release/buy-bucks .
 
-CMD ["/opt/app/buy-bucks"]
+CMD ["buy-bucks"]
