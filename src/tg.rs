@@ -20,9 +20,6 @@ enum Command {
 pub async fn start() {
     dotenv().ok();
 
-    pretty_env_logger::init();
-    log::info!("Starting command bot...");
-
     let bot = Bot::from_env();
     let chat_ids: Arc<Mutex<Vec<i64>>> = Arc::new(Mutex::new(vec![]));
 
@@ -40,7 +37,7 @@ pub async fn start() {
                     .send_message(chat_id, "This is a periodic message.")
                     .await
                 {
-                    log::error!("Failed to send message to chat ID {}: {:?}", chat_id, e);
+                    eprint!("Failed to send message to chat ID {}: {:?}", chat_id, e)
                 }
             }
 
