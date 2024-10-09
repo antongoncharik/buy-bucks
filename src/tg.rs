@@ -13,8 +13,7 @@ use crate::nbrb;
     description = "These commands are supported:"
 )]
 enum Command {
-    #[command(description = "display this text.")]
-    Help,
+    Start,
 }
 
 #[tokio::main]
@@ -27,25 +26,40 @@ pub async fn start() {
     let bot_clone = bot.clone();
     let chat_ids_clone = chat_ids.clone();
 
+    let ids = chat_ids_clone.lock().unwrap().clone();
+
+    let msg = format!("Start");
+
+    for &chat_id in ids.iter() {
+        let chat_id = ChatId(chat_id);
+
+        if let Err(e) = bot_clone.send_message(chat_id, &msg).await {
+            eprint!("Failed to send message to chat ID {}: {:?}", chat_id, e)
+        }
+    }
+
     tokio::spawn(async move {
         loop {
             let nbrb_price = nbrb::get_price().await.unwrap();
             let bnb_price = bnb::get_price().await.unwrap();
 
             let buy = nbrb_price > bnb_price;
-            let msg = format!("BUY: {}\nNBRN: {}\nBNB: {}", buy, nbrb_price, bnb_price);
 
-            let ids = chat_ids_clone.lock().unwrap().clone();
+            if buy {
+                let msg = format!("NBRN: {}\nBNB: {}", nbrb_price, bnb_price);
 
-            for &chat_id in ids.iter() {
-                let chat_id = ChatId(chat_id);
+                let ids = chat_ids_clone.lock().unwrap().clone();
 
-                if let Err(e) = bot_clone.send_message(chat_id, &msg).await {
-                    eprint!("Failed to send message to chat ID {}: {:?}", chat_id, e)
+                for &chat_id in ids.iter() {
+                    let chat_id = ChatId(chat_id);
+
+                    if let Err(e) = bot_clone.send_message(chat_id, &msg).await {
+                        eprint!("Failed to send message to chat ID {}: {:?}", chat_id, e)
+                    }
                 }
             }
 
-            sleep(Duration::from_secs(60)).await;
+            sleep(Duration::from_secs(60 * 15)).await;
         }
     });
 
@@ -68,11 +82,10 @@ async fn answer(
         println!("{}", msg.chat.id.0)
     }
 
+    let start_msg = format!("Start");
+
     match cmd {
-        Command::Help => {
-            bot.send_message(msg.chat.id, Command::descriptions().to_string())
-                .await?
-        }
+        Command::Start => bot.send_message(msg.chat.id, start_msg).await?,
     };
 
     Ok(())
