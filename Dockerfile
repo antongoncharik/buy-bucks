@@ -4,13 +4,13 @@ WORKDIR /usr/src/app
 
 COPY Cargo.toml Cargo.lock ./
 
-COPY ./src ./src
+COPY . .
 
 RUN cargo build --release
 
 FROM alpine:latest
 
-WORKDIR /usr/local/bin
+WORKDIR /usr/src/app
 
 COPY --from=builder /usr/src/app/target/release/buy-bucks .
 
