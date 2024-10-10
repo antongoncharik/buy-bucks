@@ -14,6 +14,7 @@ use crate::nbrb;
 )]
 enum Command {
     Start,
+    Status,
 }
 
 #[tokio::main]
@@ -83,9 +84,11 @@ async fn answer(
     }
 
     let start_msg = format!("Start");
+    let status_msg = format!("Alive");
 
     match cmd {
         Command::Start => bot.send_message(msg.chat.id, start_msg).await?,
+        Command::Status => bot.send_message(msg.chat.id, status_msg).await?,
     };
 
     Ok(())
