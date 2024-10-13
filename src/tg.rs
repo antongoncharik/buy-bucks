@@ -1,4 +1,5 @@
 use dotenv::dotenv;
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use teloxide::{prelude::*, utils::command::BotCommands};
@@ -22,7 +23,8 @@ pub async fn start() {
     dotenv().ok();
 
     let bot = Bot::from_env();
-    let chat_ids: Arc<Mutex<Vec<i64>>> = Arc::new(Mutex::new(vec![457923379]));
+    let chat_ids: Arc<Mutex<HashSet<i64>>> =
+        Arc::new(Mutex::new(vec![457923379].into_iter().collect()));
 
     let bot_clone = bot.clone();
     let chat_ids_clone = chat_ids.clone();
@@ -75,12 +77,11 @@ async fn answer(
     bot: Bot,
     msg: Message,
     cmd: Command,
-    chat_ids: Arc<Mutex<Vec<i64>>>,
+    chat_ids: Arc<Mutex<HashSet<i64>>>,
 ) -> ResponseResult<()> {
     {
         let mut ids = chat_ids.lock().unwrap();
-        ids.push(msg.chat.id.0);
-        println!("{}", msg.chat.id.0)
+        ids.insert(msg.chat.id.0);
     }
 
     let start_msg = format!("Start");
