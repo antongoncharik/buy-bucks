@@ -1,5 +1,6 @@
 use dotenv::dotenv;
 use std::collections::HashSet;
+use std::process;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use teloxide::{prelude::*, utils::command::BotCommands};
@@ -29,48 +30,59 @@ pub async fn start() {
     let bot_clone = bot.clone();
     let chat_ids_clone = chat_ids.clone();
 
-    let ids = chat_ids_clone.lock().unwrap().clone();
-
-    let msg = format!("Start");
-
-    for &chat_id in ids.iter() {
-        let chat_id = ChatId(chat_id);
-
-        if let Err(e) = bot_clone.send_message(chat_id, &msg).await {
-            eprint!("Failed to send message to chat ID {}: {:?}", chat_id, e)
-        }
+    if let Err(e) = run_bot(bot_clone, chat_ids_clone).await {
+        eprintln!("Critical error occurred: {:?}", e);
+        process::exit(1);
     }
-
-    tokio::spawn(async move {
-        loop {
-            let nbrb_price = nbrb::get_price().await.unwrap();
-            let bnb_price = bnb::get_price().await.unwrap();
-
-            let buy = nbrb_price > bnb_price;
-
-            if buy {
-                let msg = format!("NBRN: {}\nBNB: {}", nbrb_price, bnb_price);
-
-                let ids = chat_ids_clone.lock().unwrap().clone();
-
-                for &chat_id in ids.iter() {
-                    let chat_id = ChatId(chat_id);
-
-                    if let Err(e) = bot_clone.send_message(chat_id, &msg).await {
-                        eprint!("Failed to send message to chat ID {}: {:?}", chat_id, e)
-                    }
-                }
-            }
-
-            sleep(Duration::from_secs(60 * 15)).await;
-        }
-    });
 
     Command::repl(bot, move |bot, msg, cmd| {
         let chat_ids_clone = chat_ids.clone();
         async move { answer(bot, msg, cmd, chat_ids_clone).await }
     })
     .await;
+}
+
+async fn fetch_prices() -> Result<(f64, f64), Box<dyn std::error::Error>> {
+    let nbrb_price = nbrb::get_price().await.map_err(|e| {
+        eprintln!("Error fetching NBRB price: {:?}", e);
+        e
+    })?;
+
+    let bnb_price = bnb::get_price().await.map_err(|e| {
+        eprintln!("Error fetching BNB price: {:?}", e);
+        e
+    })?;
+
+    Ok((nbrb_price, bnb_price))
+}
+
+async fn run_bot(
+    bot: Bot,
+    chat_ids: Arc<Mutex<HashSet<i64>>>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    loop {
+        match fetch_prices().await {
+            Ok((nbrb_price, bnb_price)) => {
+                let buy = nbrb_price > bnb_price;
+                if buy {
+                    let msg = format!("NBRN: {}\nBNB: {}", nbrb_price, bnb_price);
+
+                    let ids = chat_ids.lock().unwrap().clone();
+                    for &chat_id in ids.iter() {
+                        let chat_id = ChatId(chat_id);
+                        if let Err(e) = bot.send_message(chat_id, &msg).await {
+                            eprintln!("Failed to send message to chat ID {}: {:?}", chat_id, e);
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                return Err(e);
+            }
+        }
+
+        sleep(Duration::from_secs(60 * 15)).await;
+    }
 }
 
 async fn answer(
@@ -84,8 +96,8 @@ async fn answer(
         ids.insert(msg.chat.id.0);
     }
 
-    let start_msg = format!("Start");
-    let status_msg = format!("Alive");
+    let start_msg = "Start".to_string();
+    let status_msg = "Alive".to_string();
 
     match cmd {
         Command::Start => bot.send_message(msg.chat.id, start_msg).await?,
